@@ -20,16 +20,26 @@ const (
 	uploadCompletedSignature = "0123456789012345678901234EQUADRO"
 )
 
-func updatePlanet(destination string, port int, firmware []byte) error {
+type updateProgress struct {
+	state    int
+	message  string
+	progress float32
+}
+
+func updatePlanet(destination string, port int, firmware []byte, c chan updateProgress) error {
+	c <- updateProgress{0, "", 0}
 	addr, err := net.ResolveIPAddr("ip", destination)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Connecting", addr.String())
+	c <- updateProgress{1, fmt.Sprintf("%s:%d", addr.String(), port), 0}
 	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{IP: addr.IP, Port: port})
+	if err != nil {
+		return err
+	}
 	reader := bufio.NewReader(conn)
 
-	fmt.Println("Handshake")
+	c <- updateProgress{2, "", 0}
 	helloBuff := make([]byte, 7, 7)
 	_, err = reader.Read(helloBuff)
 	if err != nil {
@@ -43,7 +53,7 @@ func updatePlanet(destination string, port int, firmware []byte) error {
 		return errInvalidResponse
 	}
 
-	fmt.Println("Request download mode")
+	c <- updateProgress{3, "", 0}
 	conn.Write([]byte("\x02PROGRAMPLANET01\x03"))
 	data, _, err := reader.ReadLine()
 	if err != nil {
@@ -56,7 +66,7 @@ func updatePlanet(destination string, port int, firmware []byte) error {
 		return errInvalidResponse
 	}
 
-	fmt.Println("Headers")
+	c <- updateProgress{4, "", 0}
 	conn.Write([]byte("\x02SENDHEADER012000000\x03"))
 	data, _, err = reader.ReadLine()
 	if err != nil {
@@ -72,7 +82,7 @@ func updatePlanet(destination string, port int, firmware []byte) error {
 
 	pktsContent := preparePackets(firmware)
 
-	fmt.Println("Firmware upload")
+	c <- updateProgress{5, "", 0}
 	for i, d := range pktsContent {
 		conn.Write([]byte(fmt.Sprintf("\x02PLANETPACKET01%04d%s\x03", i+1, d)))
 		data, _, err = reader.ReadLine()
@@ -86,11 +96,12 @@ func updatePlanet(destination string, port int, firmware []byte) error {
 			// what about closing the socket?
 			return errInvalidResponse
 		}
-		fmt.Println("Uploading", 100*i/len(pktsContent))
+		c <- updateProgress{6, "", float32(i) / float32(len(pktsContent))}
 	}
 
-	fmt.Println("Sending completed")
+	c <- updateProgress{6, "", 1}
 	conn.Write([]byte(fmt.Sprintf("\x02PLANETPACKET01%04d%s\x03", len(pktsContent)+1, strings.ToUpper(hex.EncodeToString([]byte(uploadCompletedSignature))))))
+	c <- updateProgress{7, "", 0}
 	data, _, err = reader.ReadLine()
 	if err != nil {
 		if err == io.EOF {
@@ -103,7 +114,8 @@ func updatePlanet(destination string, port int, firmware []byte) error {
 		return errInvalidResponse
 	}
 	conn.Close()
-	fmt.Println("Completed")
+	c <- updateProgress{8, "", 0}
+	close(c)
 	return nil
 }
 
@@ -113,8 +125,6 @@ func preparePackets(bin []byte) []string {
 	if binLen%32 != 0 {
 		numPackets++
 	}
-	fmt.Println(binLen)
-	fmt.Println(numPackets)
 	pkts := make([]string, numPackets)
 	writtenBytes := 0
 	for i := range pkts {
