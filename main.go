@@ -23,5 +23,13 @@ func main() {
 	kingpin.Version("1.0.0")
 	kingpin.Parse()
 
-	fmt.Println(updatePlanet(*destinationArg, int(*portArg), firmwares.MustAsset("PRO-V14.bin")))
+	var firmwareAsset string
+
+	if *typeFlag == "pro" {
+		firmwareAsset = assetPROFirmwareName
+	} else {
+		firmwareAsset = assetCompactFirmwareName
+	}
+
+	fmt.Println(updatePlanet(*destinationArg, int(*portArg), firmwares.MustAsset(firmwareAsset)))
 }
