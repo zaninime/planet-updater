@@ -39,7 +39,7 @@ const (
 	assetCompactFirmwareName = "Compact-V15.bin"
 )
 
-const version = "0.0.1"
+const version = "1.0.0"
 
 var (
 	yellowColor = ansi.ColorCode("yellow")
