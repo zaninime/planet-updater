@@ -7,7 +7,7 @@ import (
 
 	"github.com/mgutz/ansi"
 	"github.com/mgutz/logxi/v1"
-	"go.zanini.me/planet-updater/firmwares"
+	"github.com/zaninime/planet-updater/firmwares"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
