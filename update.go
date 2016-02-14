@@ -37,9 +37,9 @@ const (
 )
 
 type updateProgress struct {
-	state    int
-	message  string
-	progress float32
+	state   int
+	message string
+	pkts    int
 }
 
 func updatePlanet(destination string, port int, firmware []byte, c chan updateProgress) error {
@@ -98,7 +98,7 @@ func updatePlanet(destination string, port int, firmware []byte, c chan updatePr
 
 	pktsContent := preparePackets(firmware)
 
-	c <- updateProgress{5, "", 0}
+	c <- updateProgress{5, "", len(pktsContent)}
 	for i, d := range pktsContent {
 		conn.Write([]byte(fmt.Sprintf("\x02PLANETPACKET01%04d%s\x03", i+1, d)))
 		data, _, err = reader.ReadLine()
@@ -112,7 +112,7 @@ func updatePlanet(destination string, port int, firmware []byte, c chan updatePr
 			// what about closing the socket?
 			return errInvalidResponse
 		}
-		c <- updateProgress{6, "", float32(i) / float32(len(pktsContent))}
+		c <- updateProgress{6, "", 0}
 	}
 
 	c <- updateProgress{6, "", 1}

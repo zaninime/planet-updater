@@ -17,10 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 import (
-	"fmt"
 	"os"
 	"time"
 
+	"github.com/gosuri/uiprogress"
 	"github.com/mgutz/ansi"
 	"github.com/mgutz/logxi/v1"
 	"github.com/zaninime/planet-updater/firmwares"
@@ -35,8 +35,8 @@ var (
 )
 
 const (
-	assetPROFirmwareName     = "PRO-V14.bin"
-	assetCompactFirmwareName = "Compact-V15.bin"
+	assetPROFirmwareName     = "PLANET12Ch-V116.bin"
+	assetCompactFirmwareName = "COMPACT12Ch-V117.bin"
 )
 
 const version = "1.0.0"
@@ -75,6 +75,8 @@ func main() {
 		}
 	}()
 
+	var progressBar *uiprogress.Bar
+
 	for msg := range ch {
 		switch msg.state {
 		case 0:
@@ -89,10 +91,16 @@ func main() {
 			log.Info("Awaiting sync")
 		case 5:
 			log.Info("Uploading firmware")
+			uiprogress.Start()
+			progressBar = uiprogress.AddBar(msg.pkts)
+			progressBar.PrependElapsed()
+			progressBar.AppendCompleted()
 		case 6:
-			fmt.Printf("\r  Progress: %s% 5.1f%%%s", yellowColor, msg.progress*100.0, resetColor)
+			progressBar.Incr()
+			//fmt.Printf("\r  Progress: %s% 5.1f%%%s", yellowColor, msg.progress*100.0, resetColor)
 		case 7:
-			fmt.Print("\r                      \r")
+			uiprogress.Stop()
+			//fmt.Print("\r                      \r")
 			log.Info("Awaiting feedback from lamp")
 		case 8:
 			deltaStart := time.Now().Sub(tStart)
