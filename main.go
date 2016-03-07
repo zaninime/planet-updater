@@ -93,8 +93,8 @@ func main() {
 			log.Info("Uploading firmware")
 			uiprogress.Start()
 			progressBar = uiprogress.AddBar(msg.pkts)
-			progressBar.PrependElapsed()
-			progressBar.AppendCompleted()
+			progressBar.PrependCompleted()
+			progressBar.AppendElapsed()
 		case 6:
 			progressBar.Incr()
 			//fmt.Printf("\r  Progress: %s% 5.1f%%%s", yellowColor, msg.progress*100.0, resetColor)
